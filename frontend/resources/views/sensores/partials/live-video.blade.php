@@ -57,7 +57,8 @@
         let timer;
         let currentFrameId = null;
         let polling = false;
-        let retryDelay = 1000;
+        const pollInterval = 200;
+        let retryDelay = pollInterval;
 
         function setStatus(message, connected = false) {
             status.textContent = message;
@@ -81,7 +82,7 @@
                         setStatus('Esperando la primera imagen…');
                         placeholder.textContent = 'El receptor LoRa aún no ha enviado una imagen.';
                     }
-                    retryDelay = 1000;
+                    retryDelay = pollInterval;
                     return;
                 }
 
@@ -94,7 +95,7 @@
                 } else if (image.complete && image.naturalWidth > 0) {
                     setStatus('Recibiendo por radio', true);
                 }
-                retryDelay = 1000;
+                retryDelay = pollInterval;
             } catch (error) {
                 console.error('No se pudo consultar la última imagen LoRa:', error);
                 if (currentFrameId === null) {

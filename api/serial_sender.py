@@ -7,7 +7,7 @@ import serial
 from serial.tools import list_ports
 import requests
 from threading import Thread
-from queue import Queue, Full
+from queue import Empty, Queue, Full
 
 # ===================== CONFIG =====================
 SERIAL_PORT  = os.getenv("CANSAT_SERIAL_PORT", "auto").strip()
@@ -40,7 +40,7 @@ img_state = {
 }
 
 # Cola para procesar imágenes en segundo plano
-frame_queue: "Queue[dict]" = Queue(maxsize=8)
+frame_queue: "Queue[dict]" = Queue(maxsize=1)
 pending_telemetry = None
 
 # ===================== REGEX PARA IMÁGENES ==============
@@ -181,6 +181,25 @@ def parse_receiver_diagnostic(line: str):
     return diagnostic_keys[key], match.group(2)
 
 
+def enqueue_latest_frame(job: dict):
+    try:
+        frame_queue.put_nowait(job)
+        return
+    except Full:
+        pass
+
+    try:
+        frame_queue.get_nowait()
+    except Empty:
+        pass
+    else:
+        frame_queue.task_done()
+        if PRINT_DEBUG:
+            print("[IMG] frame pendiente reemplazado por uno más reciente")
+
+    frame_queue.put_nowait(job)
+
+
 # ===================== HELPERS IMAGEN (MAIN THREAD) =====
 def reset_image_state():
     img_state["active"] = False
@@ -212,12 +231,9 @@ def enqueue_frame_job():
         "lon": last_gps["lon"],
     }
 
-    try:
-        frame_queue.put_nowait(job)
-        if PRINT_DEBUG:
-            print(f"[IMG] job encolado id={job['id']}")
-    except Full:
-        print("[IMG] cola llena, se descarta frame")
+    enqueue_latest_frame(job)
+    if PRINT_DEBUG:
+        print(f"[IMG] job encolado id={job['id']}")
 
 
 def enqueue_raw_frame(frame_id: int, raw: bytes):
@@ -235,11 +251,8 @@ def enqueue_raw_frame(frame_id: int, raw: bytes):
         "lon": last_gps["lon"],
     }
 
-    try:
-        frame_queue.put_nowait(job)
-        print(f"[IMG] Foto LoRa {frame_id} recibida ({len(raw)} bytes)")
-    except Full:
-        print("[IMG] cola llena, se descarta frame")
+    enqueue_latest_frame(job)
+    print(f"[IMG] Foto LoRa {frame_id} recibida ({len(raw)} bytes)")
 
 
 # ===================== WORKER IMÁGENES (OTRO HILO) ======
@@ -257,6 +270,7 @@ def frame_worker():
         job = frame_queue.get()  # bloquea
         if job is None:
             # señal de shutdown
+            frame_queue.task_done()
             break
 
         try:
@@ -450,10 +464,7 @@ def main():
         print("\n[MAIN] Ctrl+C, cerrando...")
     finally:
         # señal para que el worker salga
-        try:
-            frame_queue.put_nowait(None)
-        except Full:
-            pass
+        frame_queue.put(None)
         # esperamos a que termine lo que tenga
         frame_queue.join()
 

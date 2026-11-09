@@ -1,13 +1,14 @@
 // resources/js/modelo3d-feed.js
 (() => {
   const ENDPOINT = '/sensores/live';
-  const POLL_MS = 500;
+  const POLL_MS = 100;
   const DATA_IN_MS2 = true;
   const CALIBRATION_KEY = 'cansat.orientation-calibration.v1';
 
   let started = false;
   let polling = false;
   let pollHandle = null;
+  let latestSampleId = null;
   let latestRawAngles = null;
   let calibrationActive = false;
   let orientationCalibration = { roll: 0, pitch: 0, yaw: 0 };
@@ -225,7 +226,12 @@
     const res = await fetch(ENDPOINT, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    if (!data) return;
+    if (!data || !Object.keys(data).length) return;
+
+    const sampleId = data.id ?? data.tsISO;
+    if (sampleId == null) return;
+    if (String(sampleId) === latestSampleId) return;
+    latestSampleId = String(sampleId);
 
     const s = applyCalibration(normalizeRow(data));
     updateKPIs(refs, s);
