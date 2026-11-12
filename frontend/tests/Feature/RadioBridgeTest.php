@@ -14,6 +14,13 @@ class RadioBridgeTest extends TestCase
                 'roll' => 12.5,
                 'pitch' => -3.0,
                 'yaw' => 90.0,
+                'gx' => 0.1,
+                'gy' => -0.2,
+                'gz' => 0.3,
+                'gps_fix' => 1,
+                'satellites' => 7,
+                'mpu_ok' => 1,
+                'bme_ok' => 1,
             ]),
         ]);
 
@@ -24,7 +31,41 @@ class RadioBridgeTest extends TestCase
             'roll' => 12.5,
             'pitch' => -3.0,
             'yaw' => 90.0,
+            'gx' => 0.1,
+            'gy' => -0.2,
+            'gz' => 0.3,
+            'gps_fix' => 1,
+            'satellites' => 7,
+            'mpu_ok' => 1,
+            'bme_ok' => 1,
         ], $response->json());
+    }
+
+    public function test_latest_feed_exposes_updated_sensor_and_gps_fields(): void
+    {
+        Http::fake([
+            '*api/datos/latest*' => Http::response([[
+                'id' => 5,
+                'timestamp' => '2026-11-11T12:00:00',
+                'gx' => 0.1,
+                'gy' => -0.2,
+                'gz' => 0.3,
+                'gps_fix' => 1,
+                'satellites' => 7,
+                'mpu_ok' => 1,
+                'bme_ok' => 1,
+            ]]),
+        ]);
+
+        $this->getJson('/sensores/ultimos')
+            ->assertOk()
+            ->assertJsonPath('0.gx', 0.1)
+            ->assertJsonPath('0.gy', -0.2)
+            ->assertJsonPath('0.gz', 0.3)
+            ->assertJsonPath('0.gps_fix', 1)
+            ->assertJsonPath('0.satellites', 7)
+            ->assertJsonPath('0.mpu_ok', 1)
+            ->assertJsonPath('0.bme_ok', 1);
     }
 
     public function test_latest_radio_image_is_proxied_from_the_server_api(): void

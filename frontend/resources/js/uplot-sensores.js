@@ -146,22 +146,15 @@
     }
 
     // MISMOS CHARTS QUE TU ORIGINAL
-    make("chart-temp-int", "Temp. Interna (°C)",   "temp_int",   "#ff3333"); // rojo
-    make("chart-temp-ext", "Temp. Externa (°C)",   "temp_ext",   "#ff6600"); // naranja
+    make("chart-temp-ext", "Temperatura BME680 (°C)", "temp_ext", "#ff6600");
     make("chart-hum",      "Humedad (%)",          "humedad",    "#3399ff"); // azul
     make("chart-pres",     "Presión (hPa)",        "presion",    "#ff9900"); // ámbar
-    make("chart-gas",      "Gas",                  "gas",        "#9966ff"); // morado
-    make("chart-co",       "CO",                   "co",         "#00cc99"); // aqua
-    make("chart-h2",       "H2",                   "h2",         "#ff66cc"); // rosa
-    make("chart-ch4",      "CH4",                  "ch4",        "#66cc33"); // verde
-    make("chart-no2",      "NO2",                  "no2",        "#cc6600"); // (si lo agregas más adelante)
-    make("chart-c2h2",     "C2H2",                 "c2h",        "#0099cc");
-
-    // nuevos
+    make("chart-gas",      "Resistencia de gas BME680 (kΩ)", "gas", "#9966ff");
+    make("chart-gx",       "Giro X (rad/s)",       "gx",         "#00cc99");
+    make("chart-gy",       "Giro Y (rad/s)",       "gy",         "#ff66cc");
+    make("chart-gz",       "Giro Z (rad/s)",       "gz",         "#66cc33");
     make("chart-aabs",     "Aceleración dinámica (m/s²)", "a_abs_ms2", "#ffcc00");
-    make("chart-vib-rms",  "Vib RMS (g)",          "vib_rms_g",  "#ff3399"); // (cuando exista)
     make("chart-alt",      "Altitud (m)",          "altitud_m",  "#66ff66");
-    make("chart-vdesc",    "Vel. Descenso (m/s)",  "v_desc_ms",  "#ff4444"); // (cuando exista)
 
     // ======================
     // 3) Resize responsivo

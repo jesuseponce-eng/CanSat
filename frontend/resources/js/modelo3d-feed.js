@@ -44,7 +44,7 @@
 
   function updateCalibrationButtons() {
     const hasAngles = latestRawAngles &&
-      ['roll', 'pitch', 'yaw'].every(axis => Number.isFinite(latestRawAngles[axis]));
+      ['roll', 'pitch'].every(axis => Number.isFinite(latestRawAngles[axis]));
     document.querySelectorAll('[data-orientation-calibrate]').forEach(button => {
       button.disabled = !hasAngles;
     });
@@ -52,7 +52,7 @@
       setCalibrationStatus(
         calibrationActive
           ? 'Calibración activa. Puedes volver a calibrar en cualquier momento.'
-          : 'Coloca el CanSat en la posición de referencia y calibra.'
+          : 'Coloca el CanSat en la posición de referencia y calibra roll/pitch.'
       );
     }
   }
@@ -73,11 +73,15 @@
     if (!(target instanceof Element)) return;
 
     if (target.closest('[data-orientation-calibrate]')) {
-      if (!latestRawAngles || !['roll', 'pitch', 'yaw'].every(axis => Number.isFinite(latestRawAngles[axis]))) {
+      if (!latestRawAngles || !['roll', 'pitch'].every(axis => Number.isFinite(latestRawAngles[axis]))) {
         setCalibrationStatus('Aún no hay ángulos válidos para calibrar.');
         return;
       }
-      orientationCalibration = { ...latestRawAngles };
+      orientationCalibration = {
+        roll: latestRawAngles.roll,
+        pitch: latestRawAngles.pitch,
+        yaw: Number.isFinite(latestRawAngles.yaw) ? latestRawAngles.yaw : 0,
+      };
       calibrationActive = true;
       try {
         localStorage.setItem(CALIBRATION_KEY, JSON.stringify(orientationCalibration));
@@ -113,6 +117,13 @@
       kRoll: el('kpiRoll'),
       kPitch: el('kpiPitch'),
       kYaw: el('kpiYaw'),
+      kGx: el('kpiGx'),
+      kGy: el('kpiGy'),
+      kGz: el('kpiGz'),
+      sensorMpu: el('sensor-health-mpu'),
+      sensorBme: el('sensor-health-bme'),
+      sensorGps: el('sensor-health-gps'),
+      gpsSatellites: el('sensor-gps-satellites'),
       kTempExt: el('kpiTempExt'),
       kTempInt: el('kpiTempInt'),
       kAabs: el('kpiAabs'),
@@ -139,13 +150,18 @@
   }
 
   function updateKPIs(refs, s) {
-    const set = (el, val, fmt = (x)=>x) => { if (el && Number.isFinite(val)) el.textContent = fmt(val); };
+    const set = (el, val, fmt = (x)=>x) => {
+      if (el) el.textContent = Number.isFinite(val) ? fmt(val) : '—';
+    };
     set(refs.kAx, s.ax, v=>v.toFixed(3));
     set(refs.kAy, s.ay, v=>v.toFixed(3));
     set(refs.kAz, s.az, v=>v.toFixed(3));
     set(refs.kRoll, s.roll, v=>v.toFixed(1));
     set(refs.kPitch, s.pitch, v=>v.toFixed(1));
     set(refs.kYaw, s.yaw, v=>v.toFixed(1));
+    set(refs.kGx, s.gx, v=>v.toFixed(3));
+    set(refs.kGy, s.gy, v=>v.toFixed(3));
+    set(refs.kGz, s.gz, v=>v.toFixed(3));
     set(refs.kTempExt, s.tempExt, v=>v.toFixed(2));
     set(refs.kTempInt, s.tempInt, v=>v.toFixed(2));
     set(refs.kAabs, s.a_abs_ms2, v=>v.toFixed(2));
@@ -153,6 +169,19 @@
     set(refs.kVibPeak, s.vibPeak, v=>v.toFixed(3));
     set(refs.kAlt, s.alt, v=>v.toFixed(1));
     set(refs.kVdesc, s.vdesc, v=>v.toFixed(2));
+    const setState = (element, value) => {
+      if (element) element.textContent = value == null ? 'No reportado' : Number(value) === 1 ? 'OK' : 'Sin respuesta';
+    };
+    setState(refs.sensorMpu, s.mpu_ok);
+    setState(refs.sensorBme, s.bme_ok);
+    if (refs.sensorGps) {
+      refs.sensorGps.textContent = s.gps_fix == null
+        ? 'No reportado'
+        : Number(s.gps_fix) === 1 ? 'Fix' : 'Sin fix';
+    }
+    if (refs.gpsSatellites) {
+      refs.gpsSatellites.textContent = Number.isFinite(s.satellites) ? String(s.satellites) : '—';
+    }
   }
 
   const vib = { buf: [], N: 50, TH_LOW: 0.05, TH_HIGH: 0.15 };
@@ -213,6 +242,9 @@
       tsISO: d.tsISO || null,
       ax: ax_g, ay: ay_g, az: az_g,
       roll, pitch, yaw,
+      gx: safeNum(d.gx), gy: safeNum(d.gy), gz: safeNum(d.gz),
+      gps_fix: safeNum(d.gps_fix), satellites: safeNum(d.satellites),
+      mpu_ok: safeNum(d.mpu_ok), bme_ok: safeNum(d.bme_ok),
       tempExt, tempInt,
       a_abs_ms2: aabs,
       alt,
@@ -239,8 +271,8 @@
     pushAndEvalVibration(refs.badge, s);
 
     if (window.set3DOrientation &&
-        Number.isFinite(s.roll) && Number.isFinite(s.pitch) && Number.isFinite(s.yaw)) {
-      window.set3DOrientation(s);
+        Number.isFinite(s.roll) && Number.isFinite(s.pitch)) {
+      window.set3DOrientation({ ...s, yaw: Number.isFinite(s.yaw) ? s.yaw : 0 });
     }
   }
 

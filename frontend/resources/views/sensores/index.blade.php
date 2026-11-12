@@ -223,6 +223,24 @@
 
                         <div class="px-4 pt-5 pb-1 border-t border-violet-700/60">
                             <h4 class="text-purple-200 space-font font-semibold mb-3">IMU en tiempo real</h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs">
+                                <div class="rounded border border-violet-800/40 bg-gray-900/60 p-2">
+                                    <span class="text-gray-400">MPU6050</span>
+                                    <span id="sensor-health-mpu" class="ml-1 text-purple-200">—</span>
+                                </div>
+                                <div class="rounded border border-violet-800/40 bg-gray-900/60 p-2">
+                                    <span class="text-gray-400">BME680</span>
+                                    <span id="sensor-health-bme" class="ml-1 text-purple-200">—</span>
+                                </div>
+                                <div class="rounded border border-violet-800/40 bg-gray-900/60 p-2">
+                                    <span class="text-gray-400">GPS</span>
+                                    <span id="sensor-health-gps" class="ml-1 text-purple-200">—</span>
+                                </div>
+                                <div class="rounded border border-violet-800/40 bg-gray-900/60 p-2">
+                                    <span class="text-gray-400">Satélites</span>
+                                    <span id="sensor-gps-satellites" class="ml-1 text-purple-200">—</span>
+                                </div>
+                            </div>
 
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="p-2 bg-gray-900/60 rounded border border-violet-800/40">
@@ -254,9 +272,23 @@
                                         class="text-purple-200 font-mono tabular-nums text-right whitespace-nowrap">—</div>
                                 </div>
                                 <div class="p-2 bg-gray-900/60 rounded border border-violet-800/40">
-                                    <div class="text-[11px] text-gray-400">z° (yaw)</div>
+                                    <div class="text-[11px] text-gray-400">z° (yaw; rumbo absoluto no disponible)</div>
                                     <div id="kpiYaw"
                                         class="text-purple-200 font-mono tabular-nums text-right whitespace-nowrap">—</div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 mt-3">
+                                <div class="p-2 bg-gray-900/60 rounded border border-violet-800/40">
+                                    <div class="text-[11px] text-gray-400">Giro X (rad/s)</div>
+                                    <div id="kpiGx" class="text-purple-200 font-mono tabular-nums text-right whitespace-nowrap">—</div>
+                                </div>
+                                <div class="p-2 bg-gray-900/60 rounded border border-violet-800/40">
+                                    <div class="text-[11px] text-gray-400">Giro Y (rad/s)</div>
+                                    <div id="kpiGy" class="text-purple-200 font-mono tabular-nums text-right whitespace-nowrap">—</div>
+                                </div>
+                                <div class="p-2 bg-gray-900/60 rounded border border-violet-800/40">
+                                    <div class="text-[11px] text-gray-400">Giro Z (rad/s)</div>
+                                    <div id="kpiGz" class="text-purple-200 font-mono tabular-nums text-right whitespace-nowrap">—</div>
                                 </div>
                             </div>
                             <div class="mt-3 flex flex-wrap items-center gap-2">
@@ -312,13 +344,8 @@
                 data-rows='@json($datos['datos'] ?? [])'>
 
                 <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
-                    <h3 class="text-sm text-purple-300 mb-2">Temp. Externa</h3>
+                    <h3 class="text-sm text-purple-300 mb-2">Temperatura BME680 (°C)</h3>
                     <div id="chart-temp-ext" style="height:220px"></div>
-                </div>
-
-                <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
-                    <h3 class="text-sm text-purple-300 mb-2">Temp. Interna</h3>
-                    <div id="chart-temp-int" style="height:220px"></div>
                 </div>
 
                 <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
@@ -332,33 +359,8 @@
                 </div>
 
                 <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
-                    <h3 class="text-sm text-purple-300 mb-2">Gas</h3>
+                    <h3 class="text-sm text-purple-300 mb-2">Resistencia de gas BME680 (kΩ)</h3>
                     <div id="chart-gas" style="height:220px"></div>
-                </div>
-
-                <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
-                    <h3 class="text-sm text-purple-300 mb-2">CO</h3>
-                    <div id="chart-co" style="height:220px"></div>
-                </div>
-
-                <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
-                    <h3 class="text-sm text-purple-300 mb-2">H2</h3>
-                    <div id="chart-h2" style="height:220px"></div>
-                </div>
-
-                <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
-                    <h3 class="text-sm text-purple-300 mb-2">CH4</h3>
-                    <div id="chart-ch4" style="height:220px"></div>
-                </div>
-
-                <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
-                    <h3 class="text-sm text-purple-300 mb-2">C2H2</h3>
-                    <div id="chart-c2h2" style="height:220px"></div>
-                </div>
-
-                <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
-                    <h3 class="text-sm text-purple-300 mb-2">NO2</h3>
-                    <div id="chart-no2" style="height:220px"></div>
                 </div>
 
                 <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
@@ -366,7 +368,20 @@
                     <div id="chart-aabs" style="height:220px"></div>
                 </div>
 
+                <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
+                    <h3 class="text-sm text-purple-300 mb-2">Giro X (rad/s)</h3>
+                    <div id="chart-gx" style="height:220px"></div>
+                </div>
 
+                <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
+                    <h3 class="text-sm text-purple-300 mb-2">Giro Y (rad/s)</h3>
+                    <div id="chart-gy" style="height:220px"></div>
+                </div>
+
+                <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
+                    <h3 class="text-sm text-purple-300 mb-2">Giro Z (rad/s)</h3>
+                    <div id="chart-gz" style="height:220px"></div>
+                </div>
                 <div class="rounded-lg border border-violet-700 bg-gray-800 p-3 chart-card">
                     <h3 class="text-sm text-purple-300 mb-2">Altitud (m)</h3>
                     <div id="chart-alt" style="height:220px"></div>

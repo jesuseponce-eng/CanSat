@@ -107,6 +107,9 @@ class SensorData(db.Model):
     ax = db.Column(db.Float)
     ay = db.Column(db.Float)
     az = db.Column(db.Float)
+    gx = db.Column(db.Float)
+    gy = db.Column(db.Float)
+    gz = db.Column(db.Float)
 
 
     # NUEVOS: velocidades integradas que manda tu TX
@@ -122,6 +125,10 @@ class SensorData(db.Model):
     # --- geo ---
     lat = db.Column(db.Float, nullable=True)
     lon = db.Column(db.Float, nullable=True)
+    satellites = db.Column(db.Integer)
+    gps_fix = db.Column(db.Integer)
+    mpu_ok = db.Column(db.Integer)
+    bme_ok = db.Column(db.Integer)
 
     # --- enlace LoRa ---
     numero_paquete = db.Column(db.BigInteger)
@@ -185,7 +192,7 @@ class SensorData(db.Model):
 
             # IMU y movimiento
             'ax': self.ax, 'ay': self.ay, 'az': self.az,
-            #'gx': self.gx, 'gy': self.gy, 'gz': self.gz,
+            'gx': self.gx, 'gy': self.gy, 'gz': self.gz,
             'vx': self.vx, 'vy': self.vy, 'vz': self.vz,
             'pitch': self.pitch, 'roll': self.roll, 'yaw': self.yaw,
 
@@ -198,6 +205,10 @@ class SensorData(db.Model):
 
             # geo/altitud/descenso
             'lat': self.lat, 'lon': self.lon,
+            'satellites': self.satellites,
+            'gps_fix': self.gps_fix,
+            'mpu_ok': self.mpu_ok,
+            'bme_ok': self.bme_ok,
             'altitud_m': self.altitud_m,
             'numero_paquete': self.numero_paquete,
             'rssi': self.rssi,
@@ -266,8 +277,17 @@ with app.app_context():
         'paquetes_perdidos': 'BIGINT',
         'recepcion_pct': 'FLOAT',
     }
+    cansat_columns = {
+        'gx': 'FLOAT',
+        'gy': 'FLOAT',
+        'gz': 'FLOAT',
+        'satellites': 'INTEGER',
+        'gps_fix': 'INTEGER',
+        'mpu_ok': 'INTEGER',
+        'bme_ok': 'INTEGER',
+    }
     with db.engine.begin() as connection:
-        for column, sql_type in radio_columns.items():
+        for column, sql_type in {**radio_columns, **cansat_columns}.items():
             if column not in existing_columns:
                 connection.exec_driver_sql(
                     f'ALTER TABLE sensor_data ADD COLUMN {column} {sql_type} NULL'
@@ -323,6 +343,9 @@ def guardar_datos():
             "AX": "ax",
             "AY": "ay",
             "AZ": "az",
+            "GX": "gx",
+            "GY": "gy",
+            "GZ": "gz",
             "VX": "vx",
             "VY": "vy",
             "VZ": "vz",
@@ -337,6 +360,10 @@ def guardar_datos():
             "LN": "lon",
             "LAT": "lat",
             "LON": "lon",
+            "SAT": "satellites",
+            "FIX": "gps_fix",
+            "MPU": "mpu_ok",
+            "BME": "bme_ok",
 
             # altura
             "A": "altitud_m",
@@ -354,7 +381,10 @@ def guardar_datos():
         }
 
         row = {}
-        integer_fields = {"numero_paquete", "paquetes_recibidos", "paquetes_perdidos"}
+        integer_fields = {
+            "numero_paquete", "paquetes_recibidos", "paquetes_perdidos",
+            "satellites", "gps_fix", "mpu_ok", "bme_ok",
+        }
         for key_json, col_db in mapping.items():
             if key_json in payload and payload[key_json] is not None:
                 try:
@@ -364,6 +394,20 @@ def guardar_datos():
                         row[col_db] = float(payload[key_json])
                 except (TypeError, ValueError):
                     row[col_db] = None
+
+        if row.get("gps_fix") == 0:
+            row.update({"lat": None, "lon": None, "altitud_m": None})
+        if row.get("mpu_ok") == 0:
+            row.update({
+                "ax": None, "ay": None, "az": None,
+                "gx": None, "gy": None, "gz": None,
+                "pitch": None, "roll": None, "yaw": None, "a_abs_ms2": None,
+            })
+        if row.get("bme_ok") == 0:
+            row.update({
+                "temp_ext": None, "humedad": None,
+                "presion": None, "gas": None,
+            })
         #Parcheando ubicación porque no sirve el GPS
             #Ubicación de cholula 19.05803237539983, -98.29876281180091
             #lat = 19.058032
@@ -421,6 +465,9 @@ def guardar_datos():
             "ax": row.get("ax"),
             "ay": row.get("ay"),
             "az": row.get("az"),
+            "gx": row.get("gx"),
+            "gy": row.get("gy"),
+            "gz": row.get("gz"),
             "pitch": row.get("pitch"),
             "roll": row.get("roll"),
             "yaw": row.get("yaw"),
@@ -438,6 +485,10 @@ def guardar_datos():
             "altitud_m": row.get("altitud_m"),
             "lat": row.get("lat"),
             "lon": row.get("lon"),
+            "satellites": row.get("satellites"),
+            "gps_fix": row.get("gps_fix"),
+            "mpu_ok": row.get("mpu_ok"),
+            "bme_ok": row.get("bme_ok"),
             "numero_paquete": row.get("numero_paquete"),
             "rssi": row.get("rssi"),
             "snr": row.get("snr"),
@@ -629,6 +680,9 @@ def datos_latest():
                 SensorData.ax,
                 SensorData.ay,
                 SensorData.az,
+                SensorData.gx,
+                SensorData.gy,
+                SensorData.gz,
                 SensorData.pitch,
                 SensorData.roll,
                 SensorData.yaw,
@@ -650,6 +704,10 @@ def datos_latest():
                 SensorData.altitud_m,
                 SensorData.lat,
                 SensorData.lon,
+                SensorData.satellites,
+                SensorData.gps_fix,
+                SensorData.mpu_ok,
+                SensorData.bme_ok,
                 SensorData.numero_paquete,
                 SensorData.rssi,
                 SensorData.snr,
@@ -671,6 +729,9 @@ def datos_latest():
                     "ax": r.ax,
                     "ay": r.ay,
                     "az": r.az,
+                    "gx": r.gx,
+                    "gy": r.gy,
+                    "gz": r.gz,
                     "pitch": r.pitch,
                     "roll": r.roll,
                     "yaw": r.yaw,
@@ -688,6 +749,10 @@ def datos_latest():
                     "altitud_m": r.altitud_m,
                     "lat": r.lat,
                     "lon": r.lon,
+                    "satellites": r.satellites,
+                    "gps_fix": r.gps_fix,
+                    "mpu_ok": r.mpu_ok,
+                    "bme_ok": r.bme_ok,
                     "numero_paquete": r.numero_paquete,
                     "rssi": r.rssi,
                     "snr": r.snr,

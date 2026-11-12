@@ -262,10 +262,17 @@ class SensorDataController extends Controller
                 'ax'       => $d['ax'] ?? null,
                 'ay'       => $d['ay'] ?? null,
                 'az'       => $d['az'] ?? null,
+                'gx'       => $d['gx'] ?? null,
+                'gy'       => $d['gy'] ?? null,
+                'gz'       => $d['gz'] ?? null,
 
                 'pitch'    => $d['pitch'] ?? null,
                 'roll'     => $d['roll'] ?? null,
                 'yaw'      => $d['yaw'] ?? null,
+                'satellites' => $d['satellites'] ?? null,
+                'gps_fix'    => $d['gps_fix'] ?? null,
+                'mpu_ok'     => $d['mpu_ok'] ?? null,
+                'bme_ok'     => $d['bme_ok'] ?? null,
 
                 'a_abs_ms2' => $d['a_abs_ms2'] ?? null,
                 'altitud_m' => $d['altitud_m'] ?? null,

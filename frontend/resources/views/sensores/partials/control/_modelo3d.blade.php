@@ -59,7 +59,7 @@
           <div id="kpiPitch" class="text-purple-200 font-mono tabular-nums text-right whitespace-nowrap">—</div>
         </div>
         <div class="p-2 bg-gray-900/60 rounded border border-violet-800/40">
-          <div class="text-[11px] text-gray-400">z° (yaw)</div>
+          <div class="text-[11px] text-gray-400">z° (yaw; rumbo absoluto no disponible)</div>
           <div id="kpiYaw" class="text-purple-200 font-mono tabular-nums text-right whitespace-nowrap">—</div>
         </div>
       </div>

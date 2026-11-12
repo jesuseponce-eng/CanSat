@@ -103,11 +103,16 @@ repositorio contiene dos aplicaciones que trabajan juntas:
    la frecuencia efectiva depende de la radio, el emisor y la disponibilidad de
    datos nuevos.
 
-El emisor serial espera telemetria JSON, `CAN01` o campos `CLAVE=valor`. Para
-orientar el modelo se requieren angulos `RL`/`ROLL`, `PI`/`PITCH` y
-`YW`/`YAW`. Las imagenes se pueden enviar como Base64 (`SIMG`/`B64`/`EIMG`) o
-como JPEG binario (`JPEG_BEGIN,id,tamano`, seguido por exactamente esa cantidad
-de bytes JPEG).
+El emisor serial espera telemetria JSON, `CAN01` o campos `CLAVE=valor`. La
+version CanSat con BME680/MPU6050 transmite temperatura, humedad, presion y
+resistencia de gas (`T`, `H`, `P`, `GAS`), aceleracion (`AX`/`AY`/`AZ`),
+velocidad angular (`GX`/`GY`/`GZ`), inclinacion (`PI`/`RL`) y estado del GPS y
+sensores (`FIX`, `SAT`, `MPU`, `BME`). El modelo 3D usa roll/pitch y deja yaw
+sin dato porque el MPU6050 no mide rumbo magnetico. Las lecturas de sensores
+sin respuesta y las coordenadas sin fix se guardan como nulas, no como ceros.
+Las imagenes se pueden enviar como Base64 (`SIMG`/`B64`/`EIMG`) o como JPEG
+binario (`JPEG_BEGIN,id,tamano`, seguido por exactamente esa cantidad de bytes
+JPEG).
 
 ## Requisitos
 

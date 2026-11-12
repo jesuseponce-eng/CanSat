@@ -139,12 +139,16 @@ def available_serial_ports():
 
 
 def post_telemetry(session_telem: requests.Session, payload: dict):
-    lat = payload.get("lat", payload.get("LT", payload.get("LAT")))
-    lon = payload.get("lon", payload.get("LN", payload.get("LON")))
-    if lat is not None:
-        last_gps["lat"] = lat
-    if lon is not None:
-        last_gps["lon"] = lon
+    gps_fix = payload.get("FIX")
+    if gps_fix is not None and str(gps_fix).strip().lower() in {"0", "0.0", "false", "no"}:
+        last_gps["lat"] = None
+        last_gps["lon"] = None
+    else:
+        lat = payload.get("lat", payload.get("LT", payload.get("LAT")))
+        lon = payload.get("lon", payload.get("LN", payload.get("LON")))
+        if lat is not None and lon is not None:
+            last_gps["lat"] = lat
+            last_gps["lon"] = lon
 
     try:
         response = session_telem.post(API_TELEM, json=payload, timeout=0.5)
