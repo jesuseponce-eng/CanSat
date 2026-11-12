@@ -12,7 +12,10 @@ from sqlalchemy import func, and_
 from flask_cors import CORS
 from functools import lru_cache
 from shapely.geometry import Point
+from queue import Empty, Queue
+from threading import Event, Lock
 import os
+import uuid
 
 # === Zona horaria (CDMX) y helper para hora local naive ===
 mexico_tz = pytz.timezone("America/Mexico_City")
@@ -36,6 +39,12 @@ app.config['FRAMES_DIR'] = os.path.join(os.getcwd(), 'frames')
 os.makedirs(app.config['FRAMES_DIR'], exist_ok=True)
 
 db = SQLAlchemy(app)
+
+# ===== COMANDOS DE ESTACION A CANSAT =====
+COMMAND_QUEUE = Queue()
+COMMAND_JOBS = {}
+COMMAND_JOBS_LOCK = Lock()
+COMMAND_WAIT_SECONDS = 10
 
 # === Servir archivos de /frames ===
 @app.route('/frames/<path:filename>')
@@ -313,6 +322,61 @@ with app.app_context():
  
 # variable global
 LAST_SAMPLE = {}
+
+
+@app.route('/api/comandos/ping', methods=['POST'])
+def ping_cansat():
+    request_id = str(uuid.uuid4())
+    job = {'event': Event(), 'result': None}
+    with COMMAND_JOBS_LOCK:
+        COMMAND_JOBS[request_id] = job
+    COMMAND_QUEUE.put(request_id)
+
+    try:
+        if not job['event'].wait(COMMAND_WAIT_SECONDS):
+            return jsonify({
+                'error': 'No hubo respuesta del CanSat. Verifica el receptor USB y la ESP32.',
+                'request_id': request_id,
+            }), 504
+        if not job['result']['ok']:
+            return jsonify({'error': job['result']['error']}), 502
+        return jsonify({
+            'ok': True,
+            'message': 'CanSat respondió PONG por LoRa.',
+            'request_id': request_id,
+        })
+    finally:
+        with COMMAND_JOBS_LOCK:
+            COMMAND_JOBS.pop(request_id, None)
+
+
+@app.route('/api/comandos/siguiente', methods=['GET'])
+def siguiente_comando():
+    try:
+        request_id = COMMAND_QUEUE.get_nowait()
+    except Empty:
+        return '', 204
+    return jsonify({'request_id': request_id, 'command': 'PING'})
+
+
+@app.route('/api/comandos/<request_id>/resultado', methods=['POST'])
+def resultado_comando(request_id):
+    payload = request.get_json(silent=True) or {}
+    ok = payload.get('ok')
+    if not isinstance(ok, bool):
+        return jsonify({'error': 'El campo ok debe ser booleano.'}), 400
+
+    with COMMAND_JOBS_LOCK:
+        job = COMMAND_JOBS.get(request_id)
+        if job is None:
+            return jsonify({'error': 'Comando inexistente o expirado.'}), 404
+        job['result'] = {
+            'ok': ok,
+            'error': str(payload.get('error') or 'No se confirmó el PING por radio.'),
+        }
+        job['event'].set()
+    return jsonify({'ok': True})
+
 
 @app.route('/api/guardar', methods=['POST'])
 def guardar_datos():

@@ -16,6 +16,8 @@ repositorio contiene dos aplicaciones que trabajan juntas:
 - **Datos en tiempo real (`/sensores`)**: resumen de telemetria, imagenes recibidas
   por radio, mapa y modelo 3D con orientacion del CanSat, graficas y riesgo por
   bioma.
+- **Prueba de enlace**: el boton `Probar conexión` envia PING por el receptor
+  LoRa y confirma solo cuando la ESP32 del CanSat responde PONG.
 - **Estadisticas (`/sensores/estadisticas`)**: promedios, consultas por rango de
   tiempo e historial de muestras.
 - **Control de mision (`/sensores/control`)**: vistas de control que incluyen
@@ -203,6 +205,12 @@ El emisor intenta detectar el puerto USB. Si hace falta fijarlo, define
 `http://localhost:5000/api`; si Flask corre en otra maquina, actualiza las
 constantes `API_TELEM` y `API_FRAMES` de ese archivo.
 
+El boton de prueba de enlace requiere que este ejecutandose tambien
+`serial_sender.py` y que ambos ESP32 tengan los sketches actualizados de
+[`firmware/`](./firmware/). La prueba solo envia PING/PONG; no activa ningun
+monitor ni actuador. Sin el CanSat, la pagina sigue disponible y el boton
+informara que no recibio confirmacion.
+
 El hub MJPEG de `api/esp32_hub.py` y el emisor de YouTube de `api/emision.py` son
 flujos auxiliares distintos de las imagenes LoRa del panel. Requieren su propia
 configuracion local y, para YouTube, FFmpeg.
@@ -214,6 +222,7 @@ configuracion local y, para YouTube, FFmpeg.
 | Metodo | Ruta | Uso |
 |---|---|---|
 | `POST` | `/api/guardar` | Guardar una muestra de telemetria. |
+| `POST` | `/api/comandos/ping` | Solicitar PING y esperar confirmacion LoRa PONG. |
 | `GET` | `/api/live` | Obtener la muestra mas reciente en memoria. |
 | `GET` | `/api/datos` | Consultar historial paginado. |
 | `GET` | `/api/datos/latest` | Consultar las muestras mas recientes. |

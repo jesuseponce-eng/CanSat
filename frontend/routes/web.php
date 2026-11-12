@@ -18,6 +18,9 @@ Route::get('/api/sensores/latest-frame/image', [FrameController::class, 'latestI
 Route::get('/sensores/ultimos', [SensorDataController::class, 'ultimos'])->name('sensores.ultimos');
 Route::get('/sensores/ultimos-stream', [SensorDataController::class, 'ultimosStream'])->name('sensores.ultimosStream');
 Route::get('/sensores/live', [SensorDataController::class, 'live'])->name('sensores.live');
+Route::post('/sensores/probar-conexion', [SensorDataController::class, 'probarConexion'])
+    ->middleware('throttle:3,1')
+    ->name('sensores.probar-conexion');
 Route::get('/sensores/ventana', [SensorDataController::class, 'ventana']);
 Route::post('/sensores/calibrar-aceleracion', [SensorDataController::class, 'calibrarAceleracion'])
 	->name('sensores.calibrar-aceleracion');

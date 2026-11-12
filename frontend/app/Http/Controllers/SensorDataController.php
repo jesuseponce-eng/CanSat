@@ -311,6 +311,31 @@ class SensorDataController extends Controller
         }
     }
 
+    public function probarConexion()
+    {
+        try {
+            $response = Http::timeout(12)->post($this->apiUrl . '/comandos/ping');
+            if (!$response->successful()) {
+                return response()->json([
+                    'error' => $response->json('error') ?? 'No se pudo confirmar la conexión con el CanSat.',
+                ], $response->status() === 504 ? 504 : 502);
+            }
+
+            $result = $response->json();
+            if (!is_array($result) || ($result['ok'] ?? false) !== true) {
+                return response()->json([
+                    'error' => 'El puente serial no confirmó el PONG del CanSat.',
+                ], 502);
+            }
+
+            return response()->json($result);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => 'No se pudo contactar el puente serial de la estación terrena.',
+            ], 502);
+        }
+    }
+
     /**
      * Igual que ultimos(), pero devolvemos solo las filas con id > since_id
      * para “streaming” incremental.

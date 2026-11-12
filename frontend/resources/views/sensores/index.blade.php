@@ -11,7 +11,16 @@
                         Telemetría en Tiempo Real
                     </h2>
                 </div>
-                <div class="flex items-center gap-3 text-purple-300 space-font text-sm">
+                <div class="flex flex-wrap items-center gap-3 text-purple-300 space-font text-sm">
+                    <button id="btn-ping-cansat" type="button"
+                        class="inline-flex items-center gap-2 rounded-full border border-cyan-400/50 bg-cyan-500/10 px-3 py-1.5 text-cyan-100 hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-60"
+                        aria-describedby="ping-cansat-status">
+                        <i class="fas fa-satellite-dish" aria-hidden="true"></i>
+                        Probar conexión
+                    </button>
+                    <span id="ping-cansat-status" class="text-xs text-purple-200/80" role="status" aria-live="polite">
+                        Sin prueba reciente
+                    </span>
                     <span class="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1.5">
                         <span class="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
                         Panel en vivo

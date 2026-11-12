@@ -17,6 +17,10 @@ PRINT_DEBUG  = False
 
 API_TELEM    = "http://localhost:5000/api/guardar"
 API_FRAMES   = "http://localhost:5000/api/frames"
+API_COMMAND_NEXT = "http://localhost:5000/api/comandos/siguiente"
+API_COMMAND_RESULT = "http://localhost:5000/api/comandos/{}/resultado"
+COMMAND_POLL_INTERVAL = 0.25
+COMMAND_RADIO_TIMEOUT = 8.0
 
 # Carpeta donde se guardan las imágenes
 FRAMES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frames")
@@ -183,6 +187,90 @@ def parse_receiver_diagnostic(line: str):
         "recepcion": "RECEPCION",
     }
     return diagnostic_keys[key], match.group(2)
+
+
+def report_command_result(session: requests.Session, request_id: str, ok: bool, error: str = ""):
+    try:
+        response = session.post(
+            API_COMMAND_RESULT.format(request_id),
+            json={"ok": ok, "error": error},
+            timeout=1.0,
+        )
+        if not response.ok:
+            print(f"[CMD] No se pudo reportar resultado ({response.status_code}): {response.text[:200]}")
+    except requests.RequestException as exc:
+        print(f"[CMD] Error reportando resultado: {exc}")
+
+
+def poll_ground_command(session: requests.Session, ser, pending: dict, next_radio_id: int):
+    now = time.monotonic()
+    for radio_id, command in list(pending.items()):
+        if now >= command["deadline"]:
+            report_command_result(
+                session,
+                command["request_id"],
+                False,
+                "La ESP32 CanSat no respondió PONG dentro del tiempo esperado.",
+            )
+            del pending[radio_id]
+
+    if pending or now < poll_ground_command.next_poll:
+        return next_radio_id
+    poll_ground_command.next_poll = now + COMMAND_POLL_INTERVAL
+
+    try:
+        response = session.get(API_COMMAND_NEXT, timeout=0.4)
+        if response.status_code == 204:
+            return next_radio_id
+        response.raise_for_status()
+        command = response.json()
+    except requests.RequestException as exc:
+        if PRINT_DEBUG:
+            print(f"[CMD] No se pudo consultar la cola de comandos: {exc}")
+        return next_radio_id
+
+    if command.get("command") != "PING" or not command.get("request_id"):
+        print("[CMD] Se recibió un comando inválido desde la API.")
+        return next_radio_id
+
+    radio_id = next_radio_id
+    next_radio_id = 1 if radio_id >= 65535 else radio_id + 1
+    try:
+        ser.write(f"CMD,PING,{radio_id}\n".encode("ascii"))
+        ser.flush()
+    except (serial.SerialException, OSError) as exc:
+        report_command_result(
+            session,
+            command["request_id"],
+            False,
+            f"No se pudo enviar el comando al receptor USB: {exc}",
+        )
+        return next_radio_id
+
+    pending[radio_id] = {
+        "request_id": command["request_id"],
+        "deadline": time.monotonic() + COMMAND_RADIO_TIMEOUT,
+    }
+    print(f"[CMD] PING enviado al receptor LoRa (id={radio_id})")
+    return next_radio_id
+
+
+def handle_command_reply(session: requests.Session, line: str, pending: dict) -> bool:
+    match = re.fullmatch(r"PONG,(\d+)", line)
+    if not match:
+        return False
+    radio_id = int(match.group(1))
+    command = pending.pop(radio_id, None)
+    if command is None:
+        if PRINT_DEBUG:
+            print(f"[CMD] PONG sin solicitud activa (id={radio_id})")
+        return True
+    report_command_result(session, command["request_id"], True)
+    print(f"[CMD] CanSat confirmó PONG por LoRa (id={radio_id})")
+    return True
+
+
+poll_ground_command.next_poll = 0.0
 
 
 def enqueue_latest_frame(job: dict):
@@ -430,6 +518,8 @@ def main():
     worker.start()
 
     session_telem = requests.Session()  # para telemetría
+    pending_commands = {}
+    next_radio_id = 1
 
     try:
         while True:
@@ -444,12 +534,17 @@ def main():
                     with serial.Serial(serial_port, BAUD_RATE, timeout=SER_TIMEOUT) as ser:
                         print(f"[SER] Escuchando {serial_port} @ {BAUD_RATE}")
                         while True:
+                            next_radio_id = poll_ground_command(
+                                session_telem, ser, pending_commands, next_radio_id
+                            )
                             raw = ser.readline()
                             if not raw:
                                 continue
 
                             line = raw.decode("utf-8", errors="ignore").strip()
                             if line:
+                                if handle_command_reply(session_telem, line, pending_commands):
+                                    continue
                                 image_match = RE_JPEG_BEGIN.match(line)
                                 if image_match:
                                     frame_id = int(image_match.group(1))
