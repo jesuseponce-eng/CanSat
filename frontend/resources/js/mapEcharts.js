@@ -1,6 +1,9 @@
 /* ===== Leaflet + Telemetría (México) ===== */
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import markerIconUrl from "leaflet/dist/images/marker-icon.png";
+import markerIconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
+import markerShadowUrl from "leaflet/dist/images/marker-shadow.png";
 
 const MX_BOUNDS = L.latLngBounds([[14.3, -118.8], [32.9, -86.4]]);
 let map, deviceMarker = null, accuracyCircle = null, trailPolyline;
@@ -19,9 +22,20 @@ const DELTA_T_ID         = 'map-delta-tiempo-seleccion';
 const BTN_LIMPIAR_TABLA  = 'map-btn-limpiar-tabla';
 const BTN_LIMPIAR_SEL    = 'map-btn-limpiar-seleccion';
 
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIconUrl,
+  iconRetinaUrl: markerIconRetinaUrl,
+  shadowUrl: markerShadowUrl
+});
+
 window.inicializarMapa = function () {
   const el = document.getElementById(MAP_EL_ID);
   if (!el) return;
+  if (map?.getContainer() === el) {
+    map.invalidateSize();
+    return;
+  }
+  map?.remove();
 
   map = L.map(el, {
     zoomControl: true,

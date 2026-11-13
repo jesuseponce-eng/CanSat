@@ -29,9 +29,7 @@
 
     sidebar.classList.toggle('-translate-x-full', !isOpen);
 
-    // Empuje del main en desktop
-    main.classList.toggle('lg:pl-72', isOpen);
-    main.classList.toggle('lg:pl-0', !isOpen);
+    main.dataset.collapsed = isOpen ? '0' : '1';
 
     // Backdrop solo móvil
     if (!mqLg.matches) {
@@ -63,4 +61,3 @@
     apply(saved ? saved === '1' : mqLg.matches);
   });
 })();
-

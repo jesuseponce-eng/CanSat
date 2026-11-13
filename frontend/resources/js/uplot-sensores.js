@@ -37,7 +37,7 @@
       );
     }
 
-    const MAX_POINTS = 200;
+    const MAX_POINTS = 2000;
 
     function normalizeRows(list) {
       const out = (list || [])
@@ -51,6 +51,20 @@
       out.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       // nos quedamos con los últimos N
       return out.slice(-MAX_POINTS);
+    }
+
+    function rowKey(row) {
+      const id = row.id ?? row._id;
+      return id != null ? `id:${id}` : `timestamp:${row.timestamp}`;
+    }
+
+    function mergeRows(currentRows, incomingRows) {
+      const merged = new Map();
+      for (const row of [...currentRows, ...(incomingRows || [])]) {
+        const normalized = { ...row, timestamp: getTs(row) };
+        if (normalized.timestamp) merged.set(rowKey(normalized), normalized);
+      }
+      return normalizeRows([...merged.values()]);
     }
 
     function updateLiveStatus(lastRow) {
@@ -169,7 +183,7 @@
     ro.observe(grid);
 
     window.addEventListener("cansat:telemetry", (event) => {
-      rows = normalizeRows(event.detail || []);
+      rows = mergeRows(rows, event.detail);
       updateLiveStatus(rows.at(-1));
       X = buildX(rows);
 

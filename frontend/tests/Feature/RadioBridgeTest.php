@@ -19,6 +19,8 @@ class RadioBridgeTest extends TestCase
                 'gz' => 0.3,
                 'gps_fix' => 1,
                 'satellites' => 7,
+                'lat' => 19.058032,
+                'lon' => -98.298763,
                 'mpu_ok' => 1,
                 'bme_ok' => 1,
             ]),
@@ -36,9 +38,25 @@ class RadioBridgeTest extends TestCase
             'gz' => 0.3,
             'gps_fix' => 1,
             'satellites' => 7,
+            'lat' => 19.058032,
+            'lon' => -98.298763,
             'mpu_ok' => 1,
             'bme_ok' => 1,
         ], $response->json());
+    }
+
+    public function test_live_telemetry_uses_the_configured_flask_api_url(): void
+    {
+        config(['services.sensores.api_url' => 'http://flask.internal/api']);
+        Http::fake([
+            'http://flask.internal/api/live' => Http::response(['connected' => true]),
+        ]);
+
+        $this->getJson('/sensores/live')
+            ->assertOk()
+            ->assertJsonPath('connected', true);
+
+        Http::assertSent(fn ($request) => $request->url() === 'http://flask.internal/api/live');
     }
 
     public function test_latest_feed_exposes_updated_sensor_and_gps_fields(): void
@@ -52,6 +70,8 @@ class RadioBridgeTest extends TestCase
                 'gz' => 0.3,
                 'gps_fix' => 1,
                 'satellites' => 7,
+                'lat' => 19.058032,
+                'lon' => -98.298763,
                 'mpu_ok' => 1,
                 'bme_ok' => 1,
             ]]),
@@ -64,8 +84,24 @@ class RadioBridgeTest extends TestCase
             ->assertJsonPath('0.gz', 0.3)
             ->assertJsonPath('0.gps_fix', 1)
             ->assertJsonPath('0.satellites', 7)
+            ->assertJsonPath('0.lat', 19.058032)
+            ->assertJsonPath('0.lon', -98.298763)
             ->assertJsonPath('0.mpu_ok', 1)
             ->assertJsonPath('0.bme_ok', 1);
+    }
+
+    public function test_control_map_view_uses_the_map_container_expected_by_leaflet(): void
+    {
+        $this->get('/sensores/cargar-vista-control/mapa')
+            ->assertOk()
+            ->assertSee('id="map-main"', false)
+            ->assertSee('id="map-location-status"', false)
+            ->assertSee('id="map-telemetry-body"', false)
+            ->assertSee('id="map-telemetry-status"', false)
+            ->assertSee('id="map-distancia-seleccion"', false)
+            ->assertSee('id="map-delta-tiempo-seleccion"', false)
+            ->assertSee('id="map-btn-limpiar-seleccion"', false)
+            ->assertSee('id="map-btn-limpiar-tabla"', false);
     }
 
     public function test_ping_route_reports_a_radio_confirmation(): void
@@ -122,6 +158,20 @@ class RadioBridgeTest extends TestCase
             ->assertOk()
             ->assertHeader('Content-Type', 'image/jpeg')
             ->assertContent($jpeg);
+    }
+
+    public function test_latest_frame_metadata_uses_a_same_origin_image_url(): void
+    {
+        Http::fake([
+            'http://127.0.0.1:5000/api/frames/latest' => Http::response([
+                'id' => 42,
+                'url' => 'frames/frame_000042.jpg',
+            ]),
+        ]);
+
+        $this->getJson('/api/sensores/latest-frame')
+            ->assertOk()
+            ->assertJsonPath('url', '/api/sensores/latest-frame/image');
     }
 
     public function test_latest_radio_image_rejects_unexpected_paths(): void

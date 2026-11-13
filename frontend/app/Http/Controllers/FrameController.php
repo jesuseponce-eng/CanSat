@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 
 class FrameController extends Controller
 {
@@ -13,7 +12,6 @@ class FrameController extends Controller
 
     public function __construct()
     {
-        // Puedes mover esto a config/services.php y usar env('SENSORES_API_URL')
         $this->apiUrl = config('services.sensores.api_url', 'http://localhost:5000/api');
     }
 
@@ -27,16 +25,13 @@ class FrameController extends Controller
         }
         $data = $res->json() ?? [];
 
-        // --- NORMALIZAR URL ---
-        $url = $data['url'] ?? null; // p.ej. "/frames/shinjiChair.jpg"
-        if ($url && !Str::startsWith($url, ['http://','https://'])) {
-            $base = rtrim(config('services.sensores.base_files'), '/'); // http://127.0.0.1:5000
-            $url  = $base.'/'.ltrim($url, '/'); // -> http://127.0.0.1:5000/frames/shinjiChair.jpg
-        }
+        $framePath = $data['url'] ?? null;
 
         return response()->json([
             'id'        => $data['id'] ?? null,
-            'url'       => $url,
+            'url'       => is_string($framePath) && $framePath !== ''
+                ? route('api.sensores.latest-frame.image', [], false)
+                : null,
             'lat'       => $data['lat'] ?? null,
             'lon'       => $data['lon'] ?? null,
             'num'       => $data['num'] ?? null,

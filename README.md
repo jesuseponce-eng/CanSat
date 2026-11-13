@@ -98,7 +98,8 @@ repositorio contiene dos aplicaciones que trabajan juntas:
 4. Flask (`api/app.py`) persiste las muestras y metadatos de imagen en MySQL;
    las imagenes se sirven desde `/frames/...`.
 5. Laravel consulta Flask mediante `SENSORES_API_URL` y `SENSORES_BASE_FILES`.
-   El navegador consulta las rutas Laravel para actualizar la interfaz.
+   El navegador consulta las rutas Laravel para actualizar la interfaz y cargar
+   imágenes desde el mismo dominio; no necesita acceso directo a Flask.
 6. La pagina consulta el estado de la imagen cada 200 ms y la telemetria del
    modelo cada 100 ms. La muestra repetida no se agrega nuevamente a la tabla.
    Estos intervalos solo determinan la frecuencia de consulta de la interfaz:
@@ -204,6 +205,29 @@ El emisor intenta detectar el puerto USB. Si hace falta fijarlo, define
 `CANSAT_SERIAL_PORT` (por ejemplo, `COM5`). `serial_sender.py` envia los datos a
 `http://localhost:5000/api`; si Flask corre en otra maquina, actualiza las
 constantes `API_TELEM` y `API_FRAMES` de ese archivo.
+
+### Despliegue y acceso desde otros dispositivos
+
+Celulares y computadoras pueden abrir la misma URL HTTPS de Laravel. Flask no
+debe exponerse al navegador: configura `SENSORES_API_URL` y
+`SENSORES_BASE_FILES` con direcciones alcanzables **desde el servidor Laravel**.
+Las imágenes también se sirven a través de Laravel para evitar que un navegador
+remoto intente abrir `localhost` en su propio dispositivo.
+
+El flujo PING/PONG y la telemetría actuales requieren que el receptor LoRa esté
+conectado por USB a la máquina que ejecuta `api/serial_sender.py`, y que ese
+proceso pueda alcanzar Flask en `localhost:5000`. Por ello, el servidor que aloja
+el puente serial debe tener acceso físico al receptor. Si el sitio se aloja en
+hosting compartido o en una nube sin acceso a ese USB, el CanSat no podrá
+comunicarse con ese servidor solo por abrir la página; hace falta desplegar un
+puente de estación terrena en una máquina con el receptor y establecer una
+conexión de red segura entre ese puente y los servicios.
+
+En producción, usa HTTPS, `APP_ENV=production`, `APP_DEBUG=false`, los assets
+generados con `npm run build` y un servidor WSGI para Flask, no el servidor de
+desarrollo `python app.py`. El puente de comandos Flask usa una cola en memoria:
+ejecuta una sola instancia de proceso Flask (con concurrencia por hilos), o
+reemplaza esa cola por una compartida antes de escalar a varios procesos.
 
 El boton de prueba de enlace requiere que este ejecutandose tambien
 `serial_sender.py` y que ambos ESP32 tengan los sketches actualizados de

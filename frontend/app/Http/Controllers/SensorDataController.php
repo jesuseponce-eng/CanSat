@@ -9,13 +9,11 @@ use Illuminate\Support\Carbon;
 
 class SensorDataController extends Controller
 {
-    // Puedes unificar el origen con env si quieres:
-    // private $apiUrl = 'http://localhost:5000/api';
     private $apiUrl;
 
     public function __construct()
     {
-        $this->apiUrl = rtrim(env('FLASK_API_BASE', 'http://localhost:5000/api'), '/');
+        $this->apiUrl = rtrim(config('services.sensores.api_url'), '/');
     }
 
     public function index(Request $request)

@@ -121,16 +121,6 @@
             });
         }
     </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (document.getElementById('main')) { // Si el contenedor del mapa existe en la página
-                if (typeof inicializarMapa === 'function') {
-                    inicializarMapa();
-                }
-            }
-        });
-    </script>
-
     @vite('resources/js/mapEcharts.js')
     @vite('resources/js/3DmodelEcharts.js')
 @endpush

@@ -42,13 +42,12 @@
         }
     </style>
     <style>
-        /* Empuje del contenido cuando el sidebar está abierto/cerrado (desktop) */
+        /* Reserva el ancho de la barra expandida para que no cubra las pestañas. */
         @media (min-width: 1024px) {
             #mainContent[data-collapsed="0"] {
-                padding-left: 18rem;
+                padding-left: 5rem;
             }
 
-            /* 72 = 18rem */
             #mainContent[data-collapsed="1"] {
                 padding-left: 0;
             }
@@ -61,7 +60,7 @@
     <div class="min-h-screen">
 
         <!-- Header -->
-        <header class="sticky top-0 z-40 bg-gray-900/95 backdrop-blur border-b border-violet-700">
+        <header class="sticky top-0 z-50 bg-gray-900/95 backdrop-blur border-b border-violet-700">
             <div class="flex items-center gap-2 px-3 py-2">
                 <!-- Botón toggle sidebar -->
                 <button id="sidebarToggle"
@@ -72,7 +71,7 @@
 
                 <div class="flex items-center gap-3">
 
-                    <h1 class="text-sm px-3 md:text-base font-semibold tracking-wide space-font">CanSat Mission Control
+                    <h1 class="text-sm px-3 md:text-base font-semibold tracking-wide space-font"> Estacion Terrena (CanSat Control de Mision)</h1>
                     </h1>
                 </div>
 
@@ -155,11 +154,6 @@
                     -->
                     </nav>
 
-                    <!-- Estado (sin bordes) -->
-                    <button type="button"
-                        class="w-12 h-12 flex items-center justify-center text-purple-400 hover:text-purple-200 focus:outline-none">
-                        <i class="fas fa-signal"></i>
-                    </button>
                 </div>
             </aside>
 
@@ -195,63 +189,6 @@
         }
         actualizarHora();
         setInterval(actualizarHora, 1000);
-    </script>
-
-    <!-- Toggle Sidebar con persistencia + resize para uPlot -->
-    <script>
-        (() => {
-            const mqLg = window.matchMedia('(min-width: 1024px)');
-            const sidebar = document.getElementById('sidebar');
-            const main = document.getElementById('mainContent');
-            const toggle = document.getElementById('sidebarToggle');
-            const backdrop = document.getElementById('sidebarBackdrop');
-            if (!sidebar || !main || !toggle) return;
-
-            const KEY = 'ui:sidebar:open';
-
-            function getInitial() {
-                const saved = localStorage.getItem(KEY);
-                if (saved !== null) return saved === '1';
-                return mqLg.matches; // default: abierto en desktop, cerrado en móvil
-            }
-
-            let open = getInitial();
-            apply(open);
-
-            function fireResize() {
-                // ayuda a que uPlot recalcule tamaños
-                setTimeout(() => window.dispatchEvent(new Event('resize')), 20);
-            }
-
-            function apply(isOpen) {
-                open = isOpen;
-                localStorage.setItem(KEY, isOpen ? '1' : '0');
-
-                // mueve el sidebar (off-canvas en móvil)
-                sidebar.classList.toggle('-translate-x-full', !isOpen);
-
-                // en desktop, empuja el main cuando abierto
-                main.classList.toggle('lg:pl-72', isOpen);
-                main.classList.toggle('lg:pl-0', !isOpen);
-
-                // backdrop solo móvil
-                if (!mqLg.matches) {
-                    backdrop?.classList.toggle('hidden', !isOpen);
-                } else {
-                    backdrop?.classList.add('hidden');
-                }
-
-                toggle.setAttribute('aria-expanded', String(isOpen));
-                fireResize();
-            }
-
-            toggle.addEventListener('click', () => apply(!open));
-            backdrop?.addEventListener('click', () => apply(false));
-            mqLg.addEventListener('change', () => {
-                const saved = localStorage.getItem(KEY);
-                apply(saved ? saved === '1' : mqLg.matches);
-            });
-        })();
     </script>
 
     @stack('scripts')

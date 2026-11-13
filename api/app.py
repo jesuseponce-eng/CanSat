@@ -849,7 +849,7 @@ from pathlib import Path
 import geopandas as gpd
 
 # GeoJSON ya recortado/simplificado a MX (exportado con tools/export_ecoregions_mx.py)
-DATA_PRE = Path(r"C:/xampp/htdocs/cansat/api/data/wwf_ecoregions_mx_simplified.geojson")
+DATA_PRE = Path(__file__).resolve().parent / 'data' / 'wwf_ecoregions_mx_simplified.geojson'
 
 ECO = None
 try:
@@ -1068,4 +1068,9 @@ def riesgo_bioma():
     })
 
 if __name__ == '__main__':
-    app.run(port=5000, debug=True, threaded=True)
+    app.run(
+        host=os.getenv('FLASK_HOST', '127.0.0.1'),
+        port=int(os.getenv('FLASK_PORT', '5000')),
+        debug=os.getenv('FLASK_DEBUG', 'false').lower() in {'1', 'true', 'yes'},
+        threaded=True,
+    )
